@@ -48,6 +48,7 @@
     join():属于线程Thread的方法，在主线程上运行调用该方法会让主线程休眠，不会释放自己持有的锁
             让调用join()的线程先执行完毕，在执行其他线程;
     wait(): 属于Object类的方法，调用该方法，会释放锁，进入线程的等待队列，
+.
             需要依靠notify()或则notifyAll()唤醒，或则wait(timeout)时间自动唤醒;
     notify(): 属于Object类的方法，唤醒在对象监视器上等待的某一个线程，选择是任意的;
     notifyAll(): 属于Object类的方法，唤醒在对象监视器上的全部线程;
@@ -203,6 +204,11 @@ ReentrantLock是独占锁且可重入的，相比synchronized而言功能更加�
     priorityBlockingQueue->一个支持优先级的无界阻塞队列，默认情况下元素采用自然顺序升序排序，也可以自定义排序实现 （实现java.lang.Comparable）
     DelayQueue->延迟队列，在指定时间才能获取队列元素的功能，队列头元素是最接近过期的元素，里面的对象必须实现java.util.concurrent.Delayed接口
     实现CompareTo()和getDelay()方法
+12、知道非阻塞队列currentLinkedQueue吗？它怎么实现线程安全的
+答：CurrentLinkedQueue是基于链表实现的无界线程安全队列，采用fifo进行排序
+    1、底层是Node，链表头部和尾部是head和tail，节点变量和内部类属性使用volatile申明保证了有序性和可见性
+    2、插入、移除、更新操作使用CAS无锁操作，保证原子性
+    3、假如多线程并发修改导致CAS更新失败，采用for循环保证更新操作成功
 
 
 
