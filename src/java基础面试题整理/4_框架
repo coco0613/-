@@ -1,0 +1,203 @@
+=========================spring篇 开始==================================
+1、什么是spring？
+答：轻量级的开源J2EE框架，是一个容器框架，用来装javaBean对象，中间层框架
+    spring是一个轻量级的控制反转(IoC)和面向切面(AOP)的容器框架，通过控制反转技术达到松耦合的目的，
+通过AOP面向切面编程，允许通过分离应用的业务逻辑与系统服务进行内聚性开发，管理应用对象的Bean和生命周期
+将简单的组件配置组合成应用的一个框架
+
+2、谈谈你对AOP的理解？
+答：AOP：将程序中交叉的逻辑（安全，日志，事务等），封装成一个切面，然后注入到目标对象中（具体业务逻辑）中去
+AOP可以对某个对象或某些对象的功能进行增强，比如对象中的方法进行增强，可以在执行某个方法之前做一些事情，在某个
+方法之后执行一些事情。
+
+3、谈谈你对IoC的理解？
+主要从IoC容器，依赖注入，控制反转三方便讲解
+答：ioc容器：实际上是一个map，里面存的是各种对象（xml里配置的Bean,@Repository,@Service,@Controller,@Component）,
+在项目启动的时候会通过反射原理创建对象，放到map里面
+    控制反转：在没有IoC容器之前，对象创建的主动权在程序员（比如对象A需要对象B，是我们主动去创建B）但是IoC之后，对象的控制权
+转移到了IoC里面，有容器进行控制。
+    依赖注入：获得依赖对象过程由自身管理改变为由IoC容器主动注入，依赖注入是实现IoC方法，是IoC容器运行期间，动态的讲某种依赖
+关系注入到对象中；
+
+4、BeanFactory和ApplicationContext有什么区别？
+答：ApplicationContext是BeanFactory的一个子接口：ApplicationContext提供了更完整的功能：
+    如：1、继承MessageSource，支持国际化 2、统一的资源文件访问方式  3、提供咋监听器中注册的bean事件
+        4、同时加载多个配置文件 5、载入多个（有继承关系）上下文，是的每个上下文都专注于一个特定层次，比如应用的web层
+加载方式：BeanFactory通过延迟加载形式注入Bean,即只有调用某个Bean的getBean()方法时才进行加载；
+        缺点：如果Bean的某个属性没有注入，BeanFactory加载后，会等到第一次调用才会抛出异常
+        ApplicationContext则是在容器启动时，一次性加载所有的Bean,在启动容器的时候就能发现spring的配置错误，有利于
+检查所有依赖属性是否注入；
+        缺点：相较于BeanFactory来说，ApplicationContext的不足就是会占用大量内存空间，当程序配置的Bean对象较多是，程序启动较慢
+BeanFactory通常以编程的方式被创建，而ApplicationContext还能通过声明创建，如使用ContextLoader
+
+BeanFactory和ApplicationContext都支持BeanPostProcessor、BeanFactoryPostProcessor的使用；
+    区别：BeanFactory是主动注册，ApplicationContext是自动注册
+
+5、描述一下spring Bean的生命周期？
+答：扫描路径->解析类的到BeanDefinition->确定构造方法实例化对象->对象中加了@Autowired注解的属性进行填充->回调Aware方法，
+比如BeanNameAware,BeanFactoryAware->调用BeanPostProcessor的初始化前的方法->调用初始化方法->调用BeanPostProcessor的
+初始化方法->如果是单例Bean,则会放进单例池->使用Bean->Spring容器关闭时调用DisposableBean中的destroy()方法
+
+20211202记录，1203搞明白spring生命周期
+https://www.cnblogs.com/zrtqsk/p/3735273.html  
+
+6、spring支持的几种Bean作用域？
+答：singleton:默认，每个容器中只有一个bean实例，单例模式由BeanFactory自身来维护，该对象的生命周期是与spring IoC容器一致的
+    prototype:为每个Bean请求提供一个实例，在每次注入时都会创建一个新的对象
+    request,session,application,websocket不常用
+
+7、spring框架中的单例Bean是线程安全的吗？
+答：不是。
+    spring的Bean默认是单例模式，框架并没有对bean进行多线程处理，如果Bean是无状态的，那么Bean是线程安全的，如果Bean是有状态的，那么Bean是线程不安全的
+    有状态就是需要保存数据，无状态就是不需要保存数据，Controller，Service，dao本身并不是线程安全的，对于有状态的Bean，
+    可以使用ThreadLocal提供的方法去解决线程安全，比如：RequestContextHolder,LocaleContextHolder等
+    注意：Bean是不是线程安全的与Bean的作用域没有关系，Bean的作用域只是表示Bean生命周期的范围，对任何生命周期的Bean都是一个对象，这个对象是不是线程安全的
+        还是得看Bean对象本身
+
+8、spring框架中都用到了那些设计模式？
+答： 工厂模式：BeanFactory:延迟注入Bean，只有调用getBean()创建对应Bean时才会创建
+        ApplicationContext: 程序启动时创建所有的bean
+    单例模式：保证一个类仅有一个实例，并提供一个访问它的全局访问点
+        spring对单例的实现：spring中的单例模式完成了后半句话，即提供了全局的访问点BeanFactory
+        但没有从构造器级别去控制单例，这是应为spring管理的是任意的java对象
+    适配器模式：springa定义了一个适配接口，使得每一种controller有一种对应的适配器实现类，让适配器代替
+        Controller执行相应的方法，这样在扩展Controller时，只需要增加一个适配器类就完成了SpringMVC的扩展了
+    装饰器模式：动态地给一个对象添加一些额外的职责。就增加功能来说，Decorator模式相比生成子类更加灵活
+        spring中用到的装饰器模式在类名上有两种表现，一种是类中含有wrapper，另一种是含有decorator
+    动态代理模式：spring中动态代理使用在AOP上。一般情况下，在织入切面时，AOP容器会为目标对象动态的创建一个代理对象
+        织入：把切面应用到目标对象并创建新的代理对象的过程
+    观察者模式：spring的时间驱动模型使用的是观察者模式，spring中Observe模式常用的地方是listener的实现
+    策略模式：spring框架的资源访问Resource接口，该接口提供了更强的资源访问能力，spring框架本身大量使用了
+        Resource接口来访问底层资源
+
+9、常见的动态代理方式？
+
+10、spring事务的实现方式和原理以及隔离级别？
+答：在使用spring框架时，可以有两种使用事务的方式，一种是编程式，一种是申明式，@Transaction注解使用就是申明式的
+    spring中在方法上添加了@Transaction注解后，spring会基于这个类生成一个代理对象，当使用这个代理对象的方法时，
+    代理逻辑会先把事务的自动提交设置为false，然后再去执行原本的业务逻辑方法，如果出现异常则进行回滚
+隔离级别：spring事务隔离级别就是数据库的隔离级别：外加一个默认级别
+    read uncommitted 读为提交
+    read committed 读已提交，不可重复读 oracle默认隔离级别
+    repeatable read 可重复读 MySQL默认隔离级别
+    serializable 可串行化
+    
+注意点：数据库配置的级别如果与spring中配置的隔离级别不一致时，已spring配置为准，若spring配置的隔离级别数据库不支持
+    则使用数据库默认的隔离级别
+
+11、spring事务传播机制？(需深度了解一下)
+    多个事务方法相互调用时，事务如何在这些方法间传播？？
+    方法A是一个事务的方法，方法A执行过程中调用了方法B，那么方法B有无事务以及方法B对事物的要求不同都会对方法A的事务
+    具体执行构成影响，同时方法A的事务对方法B的事务执行也有影响，这种影响具体是什么就由两个方法所定义的事务传播类型决定
+答：REQUIRED(spring默认的事务传播类型)：如果当前(A)没有事务，则自己(B)新建一个事务，如果当前存在事务，则加入这个事务
+    SUPPORTS：当前(A)存在事务，则(B)加入当前事务，如果当前没有事务，就以非事务方式运行
+    MANDATORY：当前(A)存在事务，则*B(加入当前事务，如果当前事务不存在，则抛出异常
+    REQUIRES_NEW：创建一个新事务，如果存在当前事务，则挂起该事物
+    NOT_SUPPORTED:已非事务方式执行，如果当前(A)存在事务，则挂起当前事务
+    NEVER：不适用事务，如果当前事务存在，抛出异常
+    NESTED：如果当前事务存在，则在嵌套事务中执行，否则REQUIRED的操作一样(开启一个事务)
+
+12、spring事务什么时候会失效？
+答：spring事务的原理是AOP，进行了切面增强，那么失效的原因就是AOP不起作用了
+常见情况：1、发生自调用，类里面使用this调用本类的方法，此时this不是代理类，而是XXService本身
+    2、方法不是public的，@Transaction只能用于public方法上，否则事务不会生效，如果非要在非public方法上
+    可以开启AspectJ代理模式
+    3、数据库不支持事务
+    4、对象没有被spring Ioc容器管理 如：未添加@Service，@Controller注解等
+    5、异常被吃掉，事务也不会回滚（即catch捕获了异常，导致无法回滚）
+
+13、什么是bean的自动装配，有那些方式？
+    autowire装配方式：
+        no-缺省情况下，自动装配是通过“ref”属性手动设定的 
+        byName:根据bean的属性名称进行自动装配(常用)
+        byType:根据bean的类型进行自动装配(一般不用)
+        constructor-类似byType，不过是用于构造器的参数，如果一个Bean与构造器参数类型相同，则装配成功，否则失败
+    @Autowired自动装配bean，可以在字段、setter方法、构造函数上使用
+14、spring、springMVC、springBoot有什么区别？
+答：spring是一个IOC容器，用来管理Bean，使用依赖注入实现控制反转，可以很方便的整合其他框架，提供了AOP机制弥补了OOP
+代码重复问题，更方便将不同类不同方法的共同处理抽取成切面，自动注入给方法执行，比如日志，异常
+    SpringMVC是spring对web框架爱的一个解决方案，提供了一个总的前端控制器Servlet，用来接收请求，然后定义了一套路由
+策略（url到Handle的映射）及适配执行Handle,将Handle结果使用视图解析技术生成视图展示给前端
+    springboot是spring提供的一个快速开发工具包，让程序员更能方便，快速的开发spring+SpringNVC应用，
+简化了配置（约定了默认配置），整合了一系列的解决方案（start机制）、redis、es等，开箱即用
+
+15、springMVC的工作流程？
+答：1、用户发送请求至前端控制器DispatcherServlet
+    2、DispatcherServlet收到请求调用HandlerMapping处理器映射器
+    3、处理器映射器找到具体的处理器(可以根据xml配置、注解进行查找)，生成处理器及处理器拦截器一并返回给DispatcherServlet
+    4、DispatcherServlet调用HandlerAdapter处理器适配器
+    5、HandlerAdapter经过适配调用具体的处理器(Controller，也叫后端控制器)
+    6、Controller执行完成后返回ModelAndView
+    7、HandlerAdapter将controller执行结果ModelAndView返回给DispatcherServlet
+    8、DispatcherServlet将modelAndView传给ViewReslover视图解析器
+    9、ViewReslover解析后返回具体view
+    10、DispatcherServlet根据view进行渲染视图
+    11、DispatcherServlet响应用户
+
+16、springboot自动配置原理？（需研究）
+答：@import + @Configuration + Spring api
+    SpringBoot 自动配置主要通过@EnableAutoConfiguration, @Conditional, @EnableConfigurationProperties 或者 @ConfigurationProperties 等几个注解来进行自动配置完成的
+    @EnableAutoConfiguration 开启自动配置，主要作用就是调用 Spring-Core 包里的 loadFactoryNames()，将 autoconfig 包里的已经写好的自动配置加载进来。
+    @Conditional 条件注解，通过判断类路径下有没有相应配置的 jar 包来确定是否加载和自动配置这个类。
+    @EnableConfigurationProperties 的作用就是，给自动配置提供具体的配置参数，只需要写在 application.properties 中，就可以通过映射写入配置类的 POJO 属性中。
+
+17、如何理解springboot中的starter？
+答：starter就是定义一个start的jar包，写一个@Configuration配置类，将这些bean定义在里面，然后在starter包的META_INF/spring.factories中写入该配置类，springboot会按照约定来加载该配置类
+
+18、spring cloud和dubbo的区别？
+答：底层协议：springcould基于http协议，dubbo基于Tcp协议，决定了dubbo的性能相对会比较好
+    注册中心：springcloud使用Eureka(AP)，保证可用性，dubbo推荐使用zookeeper(CP)保证强一致性
+    模型定义：dubbo将一个接口定义为一个服务，springcloud则是将一个应用定义为一个服务
+    功能定位：springcloud是一个生态，而dubbo是springcloud生态中关于服务调用一种叫解决方案(服务治理)
+
+19、介绍一下spring，读过源码介绍一下大致流程？
+答：1、spring是一个快速开发框架，通过IOC机制管理对象
+    2、spring的源码实现是非常优秀，设计模式的应用，并发安全的实现，面向接口的设计等
+    流程：    
+    3、在创建spring容器，也就是启动spring时，首先会进行扫描，扫描的到所有的BeanDefinition对象，并存在一个Map中
+        然后筛选出非懒加载的单例BeanDefinition进行创建Bean，对于多例Bean不需要在启动的过程中去创建，对于多例Bean会在每次获取Bean时利用
+        BeanDefinition去创建
+        利用BeanDefinition创建Bean就是创建Bean的生命周期，这期间包括了合并BeanDefinition、推断构造方法、实例化、属性填充、初始化前、初始化
+        初始化后等步骤，其中AOP就是发生在初始化后这一步骤
+    4、单例Bean创建完了之后，spring会发布一个容器启动事件
+    5、spring启动结束
+    6、当然在源码中会更复杂，比如源码中会提供一些模板方法，让子类实现，还涉及到一些BeanFactoryPostProcessor和BeanPostProcessor的注册，spring的扫描就是
+        通过BeanFactoryPostProcessor来实现的，依赖注入就是通过BeanPostProcessor实现的
+    7、在spring启动过程中还回去处理@Import等注解
+
+20、说一下spring的事务机制？
+答：1、spring事务是基于数据库和AOP机制的
+    2、当方法上使用了@Transacation注解Bean，spring会创建一个代理对象作为Bean
+    3、当调用代理对象的Bean时，会先判断该方法上是否有@Transcation注解
+    4、如果加了则利用事务管理器创建一个数据库连接，并修改数据连接的autocommit属性为false，禁止此连接自动提交，这是spring事务非常重要的一步
+    5、然后执行方法，方法会执行对应的sql，执行完方法后若无异常则就提交事务，若出现了异常，就进行事务的回滚操作
+    6、spring默认的隔离机制就是对应的数据库的默认隔离机制（oracle->read-committed,MySQL->repeatable read）
+    7、spring的事务传播机制是自己实现的，也是最为复杂的
+    8、spring的事务传播机制是根据数据库连接实现的，一个数据库连接一个事务，如果传播机制配置为新开一个事务，实际上是先建立一个数据库连接，在新建数据库连接上执行sql
+
+21、spring中后置处理器的作用？
+答：spring中的后置处理器分为BeanFactory后置处理器和Bean后置处理器，它们是spring底层源码架构设计中非常重要的一种机制，同时开发者也可以利用这两种后置处理器来进行扩展，BeanFactory
+    后置处理器表示针对BeanFactory的处理器，spring启动过程中，会先创建出BeanFactory实例，然后利用BeanFactory处理器来加工BeanFactory，比如：spring扫描就是基于BeanFactory
+    后置处理器来实现的
+    Bean的后置处理器也类似，spring在创建一个Bean的过程中，首先会实例化的到一个对象，然后在利用Bean后置处理器来对该实例对象进行加工，比如：依赖注入就是基于Bean的后置处理器来实现的，
+    通过该Bean后置处理器来给实例对象中加了@Autowired注解的属性自动赋值，还比如我们常说的AOP，也是利用一个Bean后置处理器来实现的，基于原实例对象，判断是都需要进行AOP,如果需要那么
+    就基于原实例对象进行动态代理，生成一个代理对象
+
+22、说说常用的springBoot注解，及其实现？
+答：1、@SpringBootApplication注解：这个注解标识了一个springBoot工程，它实际上是另外三个注解的组合，
+        @SpringBootConfiguration：这个注解实际上就是一个@Configuration，表示启动类也是一个配置类
+        @SpringBootAutoConfiguration：向spring容器中导入了一个selector，用来加载ClassPath下SpringFactories中锁定义的自动配置类，将这些自动加载为配置Bean
+        @ComponentScan：标识扫描路径，因为默认是没有配置实际扫描路径的，所以SpringBoot扫描的路径是启动类所在的当前目录
+    2、@Bean注解：用来定义Bean，类似Xml中的Bean标签，spring启动时，会对加了@Bean注解的方法进行解析，将方法的名字做为BeanName，并通过执行方法的到Bean对象
+    3、@Controller，@Service，@ResponseBody，@Autowired
+
+23、springCloud和springCloudAlibaba都有哪些组件，都解决了哪些问题？
+答： 
+
+
+
+
+
+ 
++
+=========================spring篇 结束==================================
