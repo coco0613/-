@@ -41,6 +41,14 @@ BeanFactory和ApplicationContext都支持BeanPostProcessor、BeanFactoryPostProc
 20211202记录，1203搞明白spring生命周期
 https://www.cnblogs.com/zrtqsk/p/3735273.html  
 
+1、扫描路径->解析类的到BeanDefinition，实例化Bean：通过反射的方式生成对象
+2、回调Aware方法，比如BeanNameAware，BeanFactoryAware等方法
+3、调用BeanPostProcessor的初始化前的方法(前置处理方法)，比如ApplicationContextPostProcessor，ApplicationContext,Environment等
+4、调用初始化方法，判断invokeInitMethod()方法
+5、调用BeanPostProcessor的初始化方法(后置处理方法)，AOP就是在此处实现的
+6、如果创建的是单例Bean,则会放进单例池，可通过getBean()获取对象
+7、spring容器关闭时调用Disposable中的destroy()方法
+
 6、spring支持的几种Bean作用域？
 答：singleton:默认，每个容器中只有一个bean实例，单例模式由BeanFactory自身来维护，该对象的生命周期是与spring IoC容器一致的
     prototype:为每个Bean请求提供一个实例，在每次注入时都会创建一个新的对象
@@ -60,7 +68,7 @@ https://www.cnblogs.com/zrtqsk/p/3735273.html
     单例模式：保证一个类仅有一个实例，并提供一个访问它的全局访问点
         spring对单例的实现：spring中的单例模式完成了后半句话，即提供了全局的访问点BeanFactory
         但没有从构造器级别去控制单例，这是应为spring管理的是任意的java对象
-    适配器模式：springa定义了一个适配接口，使得每一种controller有一种对应的适配器实现类，让适配器代替
+    适配器模式：spring定义了一个适配接口，使得每一种controller有一种对应的适配器实现类，让适配器代替
         Controller执行相应的方法，这样在扩展Controller时，只需要增加一个适配器类就完成了SpringMVC的扩展了
     装饰器模式：动态地给一个对象添加一些额外的职责。就增加功能来说，Decorator模式相比生成子类更加灵活
         spring中用到的装饰器模式在类名上有两种表现，一种是类中含有wrapper，另一种是含有decorator
@@ -140,6 +148,22 @@ https://www.cnblogs.com/zrtqsk/p/3735273.html
     @EnableAutoConfiguration 开启自动配置，主要作用就是调用 Spring-Core 包里的 loadFactoryNames()，将 autoconfig 包里的已经写好的自动配置加载进来。
     @Conditional 条件注解，通过判断类路径下有没有相应配置的 jar 包来确定是否加载和自动配置这个类。
     @EnableConfigurationProperties 的作用就是，给自动配置提供具体的配置参数，只需要写在 application.properties 中，就可以通过映射写入配置类的 POJO 属性中。
+
+自动装配实现的原理:(源码版)
+    1、当启动springboot应用程序的时候，会先创建SpringApplication的对象，在对象的构造方法中会进行某些参数的初始化工作，最主要的是判断当前应用程序的类型以及初始化器和监听器，
+        在这个过程中会加载整个应用程序中的spring.factories文件，将文件的内容放到缓存对象中，方便后续获取。
+    2、SpringApplication对象创建完成之后，开始执行run方法，来完成整个启动，启动过程中最主要的有两方法，第一个叫做prepareContext，
+        第二个叫做refreshContext,在这两个关键步骤中完整了自动装配的核心功能，前面的处理逻辑包含了上下文对象的创建,banner的打印，异常报告期的准备等各个准备工作，方便后续进行调用。
+    3、在prepareContext方法中主要完成的是对上下文对象的初始化操作，包括了属性值的设置，比如环境对象，在整个过程中有一个非常重要的方法，叫做load，load主要完成一件事，将当前启动类做为一个
+        beanDefinition注册到registry中，方便后续在进行BeanFactoryPostProcessor调用执行的时候，找到对应的主类，来完成@SpringBootApplicaiton,
+        @EnableAutoConfiguration等注解的解析工作
+    4、在refreshContext方法中会进行整个容器刷新过程，会调用中spring中的refresh方法，refresh中有非常关键的方法，来完成整个spring应用程序的启动，在自动装配过程中，会调用
+        invokeBeanFactoryPostProcessor方法，在此方法中主要是对ConfigurationClassPostProcessor类的处理，这次是BFPP的子类也是BDRPP的子类，
+        在调用的时候会先调用BDRPP中的postProcessBeanDefinitionRegistry方法，然后调用postProcessBeanFactory方法，在执行postProcessLxeanDefinitionRegistry的时候回
+        解析处理各注解，包含@PropertySource,@ComponentScan,@ComponentScans，@Bean,@import等注解，最主要的是@import注解的解析
+    5、在解析@Import注解的时候，会有一个getImports的方法，从主类开始递归解析注解，把所有包含@lmport的注解都解析到，然后在processImport方法中对Import的类进行分类，
+        此处主要识别的时候AutoConfigurationImportSelect归属于ImportSelect的子类，在后续过程中会调用
+        deferredImportSelectorHandler中的process方法，来完整EnableAutoConfiguration的加载。
 
 17、如何理解springboot中的starter？
 答：starter就是定义一个start的jar包，写一个@Configuration配置类，将这些bean定义在里面，然后在starter包的META_INF/spring.factories中写入该配置类，springboot会按照约定来加载该配置类
