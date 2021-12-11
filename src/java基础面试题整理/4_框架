@@ -68,7 +68,7 @@ https://www.cnblogs.com/zrtqsk/p/3735273.html
     单例模式：保证一个类仅有一个实例，并提供一个访问它的全局访问点
         spring对单例的实现：spring中的单例模式完成了后半句话，即提供了全局的访问点BeanFactory
         但没有从构造器级别去控制单例，这是应为spring管理的是任意的java对象
-    适配器模式：spring定义了一个适配接口，使得每一种controller有一种对应的适配器实现类，让适配器代替
+    适配器模式：spring定义了一个适配接口，使得每一种controller有一种对应的适配器实现类，让适配器代替  
         Controller执行相应的方法，这样在扩展Controller时，只需要增加一个适配器类就完成了SpringMVC的扩展了
     装饰器模式：动态地给一个对象添加一些额外的职责。就增加功能来说，Decorator模式相比生成子类更加灵活
         spring中用到的装饰器模式在类名上有两种表现，一种是类中含有wrapper，另一种是含有decorator
